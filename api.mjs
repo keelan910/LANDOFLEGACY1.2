@@ -101,7 +101,7 @@ export default async (req) => {
 }
 
     // ====================== OTHER ACTIONS ======================
-    if (a === "leads-list") {
+        if (a === "leads-list") {
       const s = url.searchParams.get("status") || "new";
       const rows = s === "all" 
         ? await sql`SELECT * FROM leads ORDER BY created_at DESC` 
@@ -109,7 +109,7 @@ export default async (req) => {
       return new Response(JSON.stringify({ data: rows }), { headers: H });
     }
 
-          if (a === "leads-my") {
+    if (a === "leads-my") {
       const agent = url.searchParams.get("agent");
       if (!agent) {
         return new Response(JSON.stringify({ data: [] }), { headers: H });
@@ -121,9 +121,8 @@ export default async (req) => {
           AND status NOT IN ('discarded', 'new') 
         ORDER BY created_at DESC`;
 
-      console.log(`leads-my for ${agent}: ${rows.length} leads found`);
+      console.log(`leads-my for ${agent}: ${rows.length} leads returned`);
       return new Response(JSON.stringify({ data: rows }), { headers: H });
-    }
     }
 
     if (a === "leads-stats") {
@@ -135,15 +134,29 @@ export default async (req) => {
 
     if (a === "leads-grab") {
       const body = await req.json();
-      const rows = await sql`UPDATE leads SET status='grabbed', grabbed_by=${body.agent}, grabbed_at=NOW() WHERE id=${body.id} AND status='new' RETURNING *`;
-      if (!rows.length) return new Response(JSON.stringify({ error: "Already grabbed" }), { status: 409, headers: H });
+      if (!body.id || !body.agent) {
+        return new Response(JSON.stringify({ error: "Missing id or agent" }), { status: 400, headers: H });
+      }
+      const rows = await sql`
+        UPDATE leads 
+        SET status='grabbed', 
+            grabbed_by=${body.agent}, 
+            grabbed_at=NOW() 
+        WHERE id=${body.id} AND status='new' 
+        RETURNING *`;
+      if (!rows.length) {
+        return new Response(JSON.stringify({ error: "Already grabbed or not found" }), { status: 409, headers: H });
+      }
       return new Response(JSON.stringify({ data: rows[0] }), { headers: H });
     }
 
     if (a === "leads-update") {
       const body = await req.json();
       const { id, status, notes, appointment_time } = body;
-      await sql`UPDATE leads 
+      if (!id) return new Response(JSON.stringify({ error: "Missing id" }), { status: 400, headers: H });
+
+      await sql`
+        UPDATE leads 
         SET status = COALESCE(${status||null}, status),
             notes = COALESCE(${notes||null}, notes),
             appointment_time = COALESCE(${appointment_time||null}, appointment_time) 
@@ -153,10 +166,11 @@ export default async (req) => {
 
     if (a === "leads-release") {
       const body = await req.json();
+      if (!body.id) return new Response(JSON.stringify({ error: "Missing id" }), { status: 400, headers: H });
+
       await sql`UPDATE leads SET status='new', grabbed_by='', grabbed_at=NULL WHERE id=${body.id}`;
       return new Response(JSON.stringify({ ok: true }), { headers: H });
     }
-
     // Sales & KPI routes (unchanged)
     if (a === "sales-get" || a === "sales-all" || a === "sales-save" || 
         a === "kpi-get" || a === "kpi-team" || a === "kpi-save") {
