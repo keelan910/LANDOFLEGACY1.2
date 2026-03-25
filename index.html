@@ -390,24 +390,13 @@ function App(){
                 <button onClick={()=>handleGrab(l.id)} style={{width:"100%",padding:"14px",borderRadius:14,background:"linear-gradient(135deg,rgba(201,168,76,.12),rgba(201,168,76,.06))",border:"1px solid rgba(201,168,76,.2)",color:"#C9A84C",fontSize:15,fontWeight:800,letterSpacing:1,animation:"grabPulse 2s ease infinite"}}>⚡ GRAB THIS LEAD</button>
               </div>
             ))}
-            {ltab==="feed"&&!leads.length&&<div style={{textAlign:"center",padding:40,color:"#1E2028",fontSize:14}}>No new leads right now</div>}
-            {ltab==="mine"&&myLeads.map((l,i)=>(
-              <div key={l.id} style={{...B.card,animation:anim?"slideUp .4s ease both":"none",animationDelay:`${.05+i*.04}s`}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-                  <div style={{fontSize:15,fontWeight:700}}>{l.name}</div>
-                  <span style={{fontSize:8,fontWeight:700,color:STATUS_COLORS[l.status],background:`${STATUS_COLORS[l.status]}12`,padding:"3px 8px",borderRadius:6,fontFamily:"'IBM Plex Mono',monospace",textTransform:"uppercase"}}>{l.status}</span>
-                </div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  {["contacted","booked","closed"].filter(s=>s!==l.status).map(s=>(
-                    <button key={s} onClick={()=>handleLeadUpdate(l.id,{status:s})} style={{padding:"7px 12px",borderRadius:8,background:`${STATUS_COLORS[s]}10`,border:`1px solid ${STATUS_COLORS[s]}20`,color:STATUS_COLORS[s],fontSize:10,fontWeight:700,textTransform:"capitalize"}}>{s}</button>
-                  ))}
-                </div>
-              </div>
+            {ltab==="feed"&&!leads.length&&<div style={{textAlign:"center",padding:40,color:"#1E2028",fontSize:14}}>No new leads right now</            {ltab==="mine"&&myLeads.map((l)=>(
+              <LeadCard 
+                key={l.id} 
+                lead={l} 
+                onStatusChange={handleLeadUpdate}
+              />
             ))}
-            {ltab==="mine"&&!myLeads.length&&<div style={{textAlign:"center",padding:40,color:"#1E2028",fontSize:14}}>Grab leads from the feed!</div>}
-          </div>
-        </div>
-      )}
 
       {/* ════════════════ TRACKER PAGE ════════════════ */}
       {page==="tracker"&&(<>
