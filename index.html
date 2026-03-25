@@ -117,6 +117,76 @@ function KpiField({label,value,onChange}){
 }
 
 // ═══ MAIN APP ═══
+function LeadCard({ lead, onStatusChange }) {
+  const [expanded, setExpanded] = React.useState(false);
+
+  const hasProfile = lead.author_profile && lead.author_profile.startsWith('http');
+  const hasPost    = lead.post_url && lead.post_url.startsWith('http');
+
+  return (
+    <div 
+      style={{...B.card, cursor:"pointer", transition:"all .2s"}}
+      onClick={() => setExpanded(!expanded)}
+    >
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+        <div>
+          <div style={{fontSize:16,fontWeight:700,color:"#E2E4EA"}}>{lead.name || "Unknown Senior"}</div>
+          <div style={{fontSize:12,color:"#6B7280"}}>{lead.group_name || "Unknown Group"}</div>
+        </div>
+        <span style={{fontSize:10,padding:"3px 10px",borderRadius:6,background:"#5B8BD420",color:"#5B8BD4",fontWeight:600}}>
+          GRABBED
+        </span>
+      </div>
+
+      {lead.post_text && (
+        <div style={{fontSize:13.5,lineHeight:1.55,color:"#A1A1AA",marginBottom:12}}>
+          {lead.post_text.length > 160 ? lead.post_text.slice(0,160)+"..." : lead.post_text}
+        </div>
+      )}
+
+      <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap"}}>
+        {hasProfile && (
+          <a href={lead.author_profile} target="_blank" rel="noopener noreferrer"
+             onClick={e=>e.stopPropagation()}
+             style={{color:"#60A5FA",fontSize:13,textDecoration:"none",display:"flex",alignItems:"center",gap:4}}>
+            👤 View Profile
+          </a>
+        )}
+        {hasPost && (
+          <a href={lead.post_url} target="_blank" rel="noopener noreferrer"
+             onClick={e=>e.stopPropagation()}
+             style={{color:"#60A5FA",fontSize:13,textDecoration:"none",display:"flex",alignItems:"center",gap:4}}>
+            🔗 View Post
+          </a>
+        )}
+      </div>
+
+      {expanded && lead.post_text && (
+        <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(255,255,255,.08)",fontSize:14,lineHeight:1.6,color:"#D1D5DB",whiteSpace:"pre-wrap"}}>
+          {lead.post_text}
+        </div>
+      )}
+
+      <div style={{display:"flex",gap:8,marginTop:16}}>
+        {["contacted","booked","closed"].filter(s => s !== lead.status).map(s => (
+          <button 
+            key={s}
+            onClick={(e)=>{e.stopPropagation(); onStatusChange(lead.id, {status:s});}}
+            style={{
+              flex:1, padding:"11px 0", borderRadius:12,
+              background: STATUS_COLORS[s]+"15",
+              border: `1px solid ${STATUS_COLORS[s]}30`,
+              color: STATUS_COLORS[s],
+              fontSize:13, fontWeight:700
+            }}
+          >
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 function App(){
   const[role,setRole]=useState(null);
   const[me,setMe]=useState(null);
@@ -295,6 +365,7 @@ function App(){
       )}
 
       {/* ════════════════ LEADS PAGE ════════════════ */}
+          {/* ════════════════ LEADS PAGE ════════════════ */}
       {page==="leads"&&(
         <div style={{flex:1,display:"flex",flexDirection:"column"}}>
           <div style={{display:"flex",gap:6,padding:"12px 16px 0"}}>
