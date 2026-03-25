@@ -1,6 +1,6 @@
 import { neon } from "@netlify/neon";
 
-const PAGE_ACCESS_TOKEN = "PASTE_YOUR_PAGE_ACCESS_TOKEN_HERE";
+const PAGE_ACCESS_TOKEN = EAAWrmUCZBxdkBRDmS3nvaw0iz5VNm6ttBgTobzpdSY4GeypgKQZAZCSSbO0AQkUlrNRXgdPTJGMFd0ZBbX9yKLvfyJMf9rzYcdTt7pJDG6tNr4uxUZBVUgFWVqYietMxkbJYAONkt2aooGYJ18FMShxEcNTZCpFD505PVZC9yytQ74ZBRLGAhZAEbmhY1GIlZAEIz3oYS4ebkZCxgZDZD;
 const VERIFY_TOKEN = "landoflegacy2025";
 const MSG_API = "https://graph.facebook.com/v21.0/me/messages";
 
