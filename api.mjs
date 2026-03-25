@@ -45,25 +45,11 @@ export default async (req) => {
       const body = await req.json();
 
 if (a === "leads-add") {
-  // Security check - only allow calls with correct verify token
-  const url = new URL(req.url);
-  const verify = url.searchParams.get('verify');
-  
-  if (verify !== 'landoflegacy2025') {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-      status: 401,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  const body = await req.json();
-
-if (a === "leads-add") {
   console.log("=== LEADS-ADD INVOKED ===");
   console.log("Full URL:", request.url);
 
   const verify = url.searchParams.get('verify');
-  console.log("Verify param:", verify);
+  console.log("Verify param received:", verify);
 
   if (verify !== 'landoflegacy2025') {
     console.log("VERIFY FAILED!");
@@ -74,34 +60,34 @@ if (a === "leads-add") {
   try {
     const bodyText = await request.text();
     console.log("Raw body length:", bodyText.length);
-    console.log("Raw body preview:", bodyText.substring(0, 500));
+    console.log("Raw body preview (first 600 chars):", bodyText.substring(0, 600));
 
     const body = JSON.parse(bodyText);
     leadsArray = Array.isArray(body) ? body : (body.leads || body.data || body.items || []);
     console.log("Parsed leads count:", leadsArray.length);
   } catch (parseErr) {
-    console.error("Failed to parse body:", parseErr);
-    return new Response(JSON.stringify({ error: 'Invalid JSON from Apify' }), { status: 400, headers: H });
+    console.error("Failed to parse JSON from Apify:", parseErr);
+    return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), { status: 400, headers: H });
   }
 
   if (leadsArray.length === 0) {
-    console.log("No leads in payload");
-    return new Response(JSON.stringify({ success: true, message: "No leads received" }), { headers: H });
+    return new Response(JSON.stringify({ success: true, message: "No leads in payload" }), { headers: H });
   }
 
   const inserted = [];
 
   for (const lead of leadsArray) {
-    console.log("Processing lead:", JSON.stringify(lead, null, 2).substring(0, 400)); // log first lead for debug
+    console.log("Processing lead preview:", JSON.stringify(lead, null, 2).substring(0, 500));
 
-    const name = lead.userName || lead.name || lead.author || lead.username || "Unknown Senior";
-    const source = "Apify Facebook Groups Scraper";
-    const post_text = (lead.content || lead.text || lead.post || lead.description || lead.message || "").slice(0, 2000);
-    const intent = lead.matchedKeyword || "final expense / iul";
-    const author_profile = lead.profileUrl || lead.userProfileUrl || lead.authorUrl || "";
-    const post_url = lead.postUrl || lead.url || lead.link || "";
-    const group_name = lead.groupTitle || lead.groupName || lead.group || lead.group_name || "";
-    const post_date = lead.date || lead.time || lead.createdAt || lead.timestamp || new Date().toISOString();
+    // === SUPER ROBUST FIELD MAPPING (covers every Apify Facebook Groups Lead Extractor Pro variation) ===
+    const name          = lead.user?.name || lead.postAuthor || lead.author || lead.userName || lead.name || lead.username || "Unknown Senior";
+    const source        = "Apify Facebook Groups Lead Extractor Pro";
+    const post_text     = (lead.text || lead.postText || lead.content || lead.post || lead.description || lead.message || "").slice(0, 2000);
+    const intent        = lead.matchedKeyword || "final expense / iul";
+    const author_profile = lead.user?.profileUrl || lead.postAuthorUrl || lead.profileUrl || lead.userProfileUrl || lead.authorUrl || "";
+    const post_url      = lead.url || lead.postUrl || lead.link || "";
+    const group_name    = lead.groupTitle || lead.groupName || lead.group || lead.source_group || lead.facebookUrl || "";
+    const post_date     = lead.time || lead.date || lead.createdAt || lead.timestamp || new Date().toISOString();
 
     try {
       const rows = await sql`
@@ -109,19 +95,19 @@ if (a === "leads-add") {
           (name, source, post_text, intent, author_profile, post_url, group_name, post_date, status, created_at)
         VALUES 
           (${name}, ${source}, ${post_text}, ${intent}, ${author_profile}, ${post_url}, ${group_name}, ${post_date}, 'new', NOW())
-        RETURNING id, name, post_text, post_url, group_name
+        RETURNING id, name, post_text, post_url, author_profile, group_name, status
       `;
 
       if (rows && rows.length > 0) {
         inserted.push(rows[0]);
-        console.log(`Inserted lead ID ${rows[0].id} - Name: ${rows[0].name}`);
+        console.log(`✅ Inserted lead ID ${rows[0].id} | Name: "${rows[0].name}" | Has profile link: ${!!rows[0].author_profile}`);
       }
     } catch (insertErr) {
-      console.error("Insert error for this lead:", insertErr);
+      console.error("Insert failed for this lead:", insertErr);
     }
   }
 
-  console.log(`Successfully inserted ${inserted.length} leads`);
+  console.log(`🎉 Finished — inserted ${inserted.length} leads`);
 
   return new Response(JSON.stringify({ 
     success: true, 
@@ -132,7 +118,6 @@ if (a === "leads-add") {
     status: 200,
     headers: H 
   });
-}
 }
       }
       if (a === "leads-grab") {
