@@ -44,10 +44,58 @@ export default async (req) => {
     if (req.method === "POST") {
       const body = await req.json();
 
-      if (a === "leads-add") {
-        const { name, source, post_text, intent, ai_draft } = body;
-        const rows = await sql`INSERT INTO leads (name,source,post_text,intent,ai_draft) VALUES (${name||''},${source||''},${post_text||''},${intent||'medium'},${ai_draft||''}) RETURNING *`;
-        return new Response(JSON.stringify({ data: rows[0] }), { headers: H });
+if (a === "leads-add") {
+  // Security check - only allow calls with correct verify token
+  const url = new URL(req.url);
+  const verify = url.searchParams.get('verify');
+  
+  if (verify !== 'landoflegacy2025') {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  const body = await req.json();
+
+  // Handle both array and {data: [...]} formats from Apify
+  const leadsArray = Array.isArray(body) ? body : (body.data || body || []);
+
+  const inserted = [];
+
+  for (const lead of leadsArray) {
+    const name = lead.userName || lead.name || lead.author || "Unknown Senior";
+    const source = "Apify Facebook Groups Scraper";
+    const post_text = (lead.content || lead.text || lead.post || lead.description || "").slice(0, 2000);
+    const intent = lead.matchedKeyword || "final expense / iul";
+    const author_profile = lead.profileUrl || lead.userProfileUrl || "";
+    const post_url = lead.postUrl || lead.url || "";
+    const group_name = lead.groupTitle || lead.groupName || lead.group || "";
+    const post_date = lead.date || lead.time || lead.createdAt || new Date().toISOString();
+
+    // Insert into your leads table
+    const rows = await sql`
+      INSERT INTO leads 
+        (name, source, post_text, intent, author_profile, post_url, group_name, post_date, status, created_at)
+      VALUES 
+        (${name}, ${source}, ${post_text}, ${intent}, ${author_profile}, ${post_url}, ${group_name}, ${post_date}, 'new', NOW())
+      RETURNING id
+    `;
+
+    if (rows && rows.length > 0) {
+      inserted.push(rows[0]);
+    }
+  }
+
+  return new Response(JSON.stringify({ 
+    success: true, 
+    message: `Successfully inserted ${inserted.length} new leads from Apify`,
+    count: inserted.length 
+  }), { 
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
       }
       if (a === "leads-grab") {
         const rows = await sql`UPDATE leads SET status='grabbed',grabbed_by=${body.agent},grabbed_at=NOW() WHERE id=${body.id} AND status='new' RETURNING *`;
