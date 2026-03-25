@@ -10,10 +10,49 @@ export default async (req) => {
     const a = url.searchParams.get("a");
 
     if (a === "init") {
-      await sql`CREATE TABLE IF NOT EXISTS daily_sales (date_key TEXT PRIMARY KEY, data JSONB NOT NULL DEFAULT '{}'::jsonb, updated_at TIMESTAMPTZ DEFAULT NOW())`;
-      await sql`CREATE TABLE IF NOT EXISTS leads (id SERIAL PRIMARY KEY, name TEXT DEFAULT '', source TEXT DEFAULT '', post_text TEXT DEFAULT '', profile_url TEXT DEFAULT '', intent TEXT DEFAULT 'medium', status TEXT DEFAULT 'new', grabbed_by TEXT DEFAULT '', grabbed_at TIMESTAMPTZ, appointment_time TEXT DEFAULT '', notes TEXT DEFAULT '', ai_draft TEXT DEFAULT '', created_at TIMESTAMPTZ DEFAULT NOW())`;
-      await sql`CREATE TABLE IF NOT EXISTS kpis (id SERIAL PRIMARY KEY, agent_id TEXT NOT NULL, date_key TEXT NOT NULL, dials INT DEFAULT 0, contacts INT DEFAULT 0, appointments INT DEFAULT 0, quotes INT DEFAULT 0, apps_submitted INT DEFAULT 0, updated_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(agent_id, date_key))`;
-      return new Response(JSON.stringify({ ok: true }), { headers: H });
+  console.log("=== RUNNING INIT ===");
+
+  await sql`CREATE TABLE IF NOT EXISTS daily_sales (
+    date_key TEXT PRIMARY KEY, 
+    data JSONB NOT NULL DEFAULT '{}'::jsonb, 
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS leads (
+    id SERIAL PRIMARY KEY,
+    name TEXT DEFAULT '',
+    source TEXT DEFAULT '',
+    post_text TEXT DEFAULT '',
+    author_profile TEXT DEFAULT '',
+    post_url TEXT DEFAULT '',
+    group_name TEXT DEFAULT '',
+    post_date TIMESTAMPTZ,
+    intent TEXT DEFAULT 'final expense / iul',
+    status TEXT DEFAULT 'new',
+    grabbed_by TEXT DEFAULT '',
+    grabbed_at TIMESTAMPTZ,
+    appointment_time TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    ai_draft TEXT DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS kpis (
+    id SERIAL PRIMARY KEY,
+    agent_id TEXT NOT NULL,
+    date_key TEXT NOT NULL,
+    dials INT DEFAULT 0,
+    contacts INT DEFAULT 0,
+    appointments INT DEFAULT 0,
+    quotes INT DEFAULT 0,
+    apps_submitted INT DEFAULT 0,
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(agent_id, date_key)
+  )`;
+
+  console.log("Tables created/updated successfully");
+  return new Response(JSON.stringify({ ok: true, message: "Schema initialized" }), { headers: H });
+}
     }
 
     if (a === "leads-list") {
