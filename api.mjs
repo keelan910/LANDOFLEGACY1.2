@@ -146,12 +146,15 @@ export default async (req) => {
       return new Response(JSON.stringify({ data: rows }), { headers: H });
     }
 
-    if (a === "leads-my") {
+        if (a === "leads-my") {
       const agent = url.searchParams.get("agent");
+      if (!agent) {
+        return new Response(JSON.stringify({ data: [] }), { headers: H });
+      }
       const rows = await sql`
         SELECT * FROM leads 
         WHERE grabbed_by = ${agent} 
-          AND status NOT IN ('discarded','new') 
+          AND status NOT IN ('discarded', 'new') 
         ORDER BY 
           CASE status 
             WHEN 'booked' THEN 1 
@@ -161,6 +164,7 @@ export default async (req) => {
             ELSE 5 
           END, created_at DESC`;
       return new Response(JSON.stringify({ data: rows }), { headers: H });
+    }
     }
 
     if (a === "leads-stats") {
