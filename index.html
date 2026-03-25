@@ -56,20 +56,21 @@ const $=n=>"$"+Number(n||0).toLocaleString("en-US");
 const empty=()=>AGENTS.reduce((a,m)=>({...a,[m.id]:{ap:0,pol:0}}),{});
 function rangeDays(t){const n=new Date(),d=[];if(t==="week"){const dow=n.getDay();for(let i=dow;i>=0;i--){const x=new Date(n);x.setDate(n.getDate()-i);d.push(dayKey(x));}}else if(t==="month"){for(let i=1;i<=n.getDate();i++)d.push(dayKey(new Date(n.getFullYear(),n.getMonth(),i)));}else if(t==="year"){const y=n.getFullYear();for(let m=0;m<=n.getMonth();m++){const mx=m===n.getMonth()?n.getDate():new Date(y,m+1,0).getDate();for(let i=1;i<=mx;i++)d.push(dayKey(new Date(y,m,i)));}}return d;}
 
-// ═══ ROAST ENGINE ═══
+// ═══ ROAST ENGINE — NO MERCY ═══
 function getRoast(dials,name){
   const hour=new Date().getHours();
-  const workHoursPassed=Math.max(0,Math.min(hour-8,9));
-  const expectedPace=workHoursPassed>0?Math.round((DIAL_GOAL/9)*workHoursPassed):0;
-  const pct=expectedPace>0?(dials/expectedPace)*100:dials>0?100:0;
-  if(hour<8)return{msg:`Morning ${name}. Day hasn't started yet. No excuses when it does.`,lvl:"neutral",emoji:"🌅"};
-  if(dials>=DIAL_GOAL)return{msg:`${name} hit ${DIAL_GOAL} dials. That's what a CLOSER looks like. Everyone else take notes.`,lvl:"fire",emoji:"👑"};
-  if(pct>=90)return{msg:`${name} is on pace. Keep that energy up and finish strong.`,lvl:"good",emoji:"💪"};
-  if(pct>=70)return{msg:`${name}, you're slipping. ${expectedPace-dials} dials behind pace. Pick up the phone or pick up a new career.`,lvl:"warn",emoji:"⚠️"};
-  if(pct>=50)return{msg:`${name}... ${dials} dials? My grandma could outpace you and she doesn't even have a phone. You're ${expectedPace-dials} behind. MOVE.`,lvl:"bad",emoji:"🗑️"};
-  if(pct>=25)return{msg:`${name}, this is embarrassing. ${dials} out of ${expectedPace} expected dials. Are you even working today or just warming a chair? The team is carrying your dead weight.`,lvl:"roast",emoji:"💀"};
-  if(dials>0)return{msg:`${name}. ${dials} dials. That's not a sales effort, that's a coffee break. My 5-year-old nephew could outwork you right now. You should be at ${expectedPace}. Get off your phone and GET ON THE PHONE.`,lvl:"nuke",emoji:"☠️"};
-  return{msg:`${name} has ZERO dials logged today. Zero. Not one single call. What are you even doing here? Either start dialing or start packing. This isn't a charity, it's Land of Legacy — act like you belong here.`,lvl:"nuke",emoji:"🚨"};
+  const wp=Math.max(0,Math.min(hour-8,9));
+  const ep=wp>0?Math.round((DIAL_GOAL/9)*wp):0;
+  const pct=ep>0?(dials/ep)*100:dials>0?100:0;
+  const behind=ep-dials;
+  if(hour<8)return{msg:`Morning ${name}. Clock hasn't started. You better come out swinging or don't come at all.`,lvl:"neutral",emoji:"🌅"};
+  if(dials>=DIAL_GOAL)return{msg:`${name} hit ${DIAL_GOAL}. Absolute f***ing machine. That's what a real one looks like. The rest of you should be embarrassed.`,lvl:"fire",emoji:"👑"};
+  if(pct>=90)return{msg:`${name} is locked in. Don't slow down now — finish this s*** strong and show them how it's done.`,lvl:"good",emoji:"💪"};
+  if(pct>=70)return{msg:`${name}, you're ${behind} behind pace. What the hell happened? You were doing fine. Stop slacking and get your ass back on the phone NOW.`,lvl:"warn",emoji:"⚠️"};
+  if(pct>=50)return{msg:`${name}... ${dials} dials? Are you f***ing kidding me? You're ${behind} behind. My dead grandma dials faster than you. Get your s*** together or get the hell out.`,lvl:"bad",emoji:"🗑️"};
+  if(pct>=25)return{msg:`${name}, what the f*** are you doing? ${dials} out of ${ep}?! This is pathetic. You're dead weight dragging this whole team down. Either dial or pack your s*** — we don't carry passengers at Land of Legacy.`,lvl:"roast",emoji:"💀"};
+  if(dials>0)return{msg:`${name}. ${dials} dials. That's not working, that's jerking off at your desk. A f***ing toddler with a toy phone would outproduce you. Should be at ${ep}. This is your last warning — PICK UP THE DAMN PHONE.`,lvl:"nuke",emoji:"☠️"};
+  return{msg:`${name} — ZERO. F***ING. DIALS. Not one goddamn call. Are you even alive? Everyone else is grinding and you're sitting there like a useless sack of s***. Either start dialing right now or hand in your badge because you clearly don't want to be here. Land of Legacy doesn't pay people to exist.`,lvl:"nuke",emoji:"🚨"};
 }
 const ROAST_BG={neutral:"rgba(255,255,255,.03)",fire:"rgba(78,191,139,.06)",good:"rgba(201,168,76,.05)",warn:"rgba(201,168,76,.08)",bad:"rgba(212,107,140,.06)",roast:"rgba(212,107,140,.08)",nuke:"rgba(239,68,68,.08)"};
 const ROAST_BORDER={neutral:"rgba(255,255,255,.05)",fire:"rgba(78,191,139,.15)",good:"rgba(201,168,76,.12)",warn:"rgba(201,168,76,.2)",bad:"rgba(212,107,140,.12)",roast:"rgba(212,107,140,.18)",nuke:"rgba(239,68,68,.2)"};
@@ -117,76 +118,6 @@ function KpiField({label,value,onChange}){
 }
 
 // ═══ MAIN APP ═══
-function LeadCard({ lead, onStatusChange }) {
-  const [expanded, setExpanded] = React.useState(false);
-
-  const hasProfile = lead.author_profile && lead.author_profile.startsWith('http');
-  const hasPost    = lead.post_url && lead.post_url.startsWith('http');
-
-  return (
-    <div 
-      style={{...B.card, cursor:"pointer", transition:"all .2s"}}
-      onClick={() => setExpanded(!expanded)}
-    >
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-        <div>
-          <div style={{fontSize:16,fontWeight:700,color:"#E2E4EA"}}>{lead.name || "Unknown Senior"}</div>
-          <div style={{fontSize:12,color:"#6B7280"}}>{lead.group_name || "Unknown Group"}</div>
-        </div>
-        <span style={{fontSize:10,padding:"3px 10px",borderRadius:6,background:"#5B8BD420",color:"#5B8BD4",fontWeight:600}}>
-          GRABBED
-        </span>
-      </div>
-
-      {lead.post_text && (
-        <div style={{fontSize:13.5,lineHeight:1.55,color:"#A1A1AA",marginBottom:12}}>
-          {lead.post_text.length > 160 ? lead.post_text.slice(0,160)+"..." : lead.post_text}
-        </div>
-      )}
-
-      <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap"}}>
-        {hasProfile && (
-          <a href={lead.author_profile} target="_blank" rel="noopener noreferrer"
-             onClick={e=>e.stopPropagation()}
-             style={{color:"#60A5FA",fontSize:13,textDecoration:"none",display:"flex",alignItems:"center",gap:4}}>
-            👤 View Profile
-          </a>
-        )}
-        {hasPost && (
-          <a href={lead.post_url} target="_blank" rel="noopener noreferrer"
-             onClick={e=>e.stopPropagation()}
-             style={{color:"#60A5FA",fontSize:13,textDecoration:"none",display:"flex",alignItems:"center",gap:4}}>
-            🔗 View Post
-          </a>
-        )}
-      </div>
-
-      {expanded && lead.post_text && (
-        <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(255,255,255,.08)",fontSize:14,lineHeight:1.6,color:"#D1D5DB",whiteSpace:"pre-wrap"}}>
-          {lead.post_text}
-        </div>
-      )}
-
-      <div style={{display:"flex",gap:8,marginTop:16}}>
-        {["contacted","booked","closed"].filter(s => s !== lead.status).map(s => (
-          <button 
-            key={s}
-            onClick={(e)=>{e.stopPropagation(); onStatusChange(lead.id, {status:s});}}
-            style={{
-              flex:1, padding:"11px 0", borderRadius:12,
-              background: STATUS_COLORS[s]+"15",
-              border: `1px solid ${STATUS_COLORS[s]}30`,
-              color: STATUS_COLORS[s],
-              fontSize:13, fontWeight:700
-            }}
-          >
-            {s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 function App(){
   const[role,setRole]=useState(null);
   const[me,setMe]=useState(null);
@@ -198,6 +129,7 @@ function App(){
   const[editing,setEditing]=useState(null);const[editVal,setEditVal]=useState("");
   const[anim,setAnim]=useState(false);const[toast,setToast]=useState(null);const[loading,setLoading]=useState(false);
   const[showAdd,setShowAdd]=useState(false);const[ltab,setLtab]=useState("feed");
+  const[lock,setLock]=useState({unlocked:false,dials:0,remaining:0,onlyHigh:false,message:"Hit 500 dials to unlock leads."});
 
   const td=todayK();const isAdmin=role==="admin";const myAgent=AGENTS.find(a=>a.id===me);
   const showToast=m=>{setToast(m);setTimeout(()=>setToast(null),2200);};
@@ -205,8 +137,21 @@ function App(){
   useEffect(()=>{fetch(`${API}?a=init`).catch(()=>{});},[]);
 
   const refresh=useCallback(async()=>{
-    const[nl,ml,ls]=await Promise.all([get("a=leads-list&status=new"),me?get(`a=leads-my&agent=${me}`):null,get("a=leads-stats")]);
-    setLeads(nl||[]);if(ml)setMyLeads(ml);setLstats(ls||{});
+    // Check lead eligibility
+    if(me){
+      const lk=await get(`a=leads-check&agent=${me}&date=${td}`);
+      if(lk)setLock(lk);
+      // Load leads based on lock status
+      const intentFilter=lk?.onlyHigh?"&intent=high":"";
+      const nl=await get(`a=leads-list&status=new${intentFilter}`);
+      setLeads(nl||[]);
+    }else{
+      const nl=await get("a=leads-list&status=new");
+      setLeads(nl||[]);
+    }
+    const ml=me?await get(`a=leads-my&agent=${me}`):null;
+    if(ml)setMyLeads(ml);
+    const ls=await get("a=leads-stats");setLstats(ls||{});
     // KPI
     if(me){const k=await get(`a=kpi-get&agent=${me}&date=${td}`);if(k)setKpi({dials:k.dials||0,contacts:k.contacts||0,appointments:k.appointments||0,quotes:k.quotes||0,apps_submitted:k.apps_submitted||0});}
     const tk=await get(`a=kpi-team&date=${td}`);setTeamKpi(tk||[]);
@@ -365,7 +310,6 @@ function App(){
       )}
 
       {/* ════════════════ LEADS PAGE ════════════════ */}
-          {/* ════════════════ LEADS PAGE ════════════════ */}
       {page==="leads"&&(
         <div style={{flex:1,display:"flex",flexDirection:"column"}}>
           <div style={{display:"flex",gap:6,padding:"12px 16px 0"}}>
@@ -379,25 +323,49 @@ function App(){
             ))}
           </div>
           {isAdmin&&<div style={{padding:"10px 16px 0"}}><button onClick={()=>setShowAdd(true)} style={{width:"100%",padding:"12px",borderRadius:12,background:"rgba(201,168,76,.05)",border:"1px dashed rgba(201,168,76,.15)",color:"#C9A84C",fontSize:13,fontWeight:700}}>+ Add Lead</button></div>}
+
+          {/* LEAD LOCK STATUS */}
+          {!isAdmin&&<div style={{margin:"10px 16px 0",padding:"14px 16px",borderRadius:14,background:lock.unlocked?"rgba(78,191,139,.06)":"rgba(239,68,68,.06)",border:`1px solid ${lock.unlocked?"rgba(78,191,139,.12)":"rgba(239,68,68,.12)"}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:lock.unlocked?"#4EBF8B":"#EF4444",marginBottom:2}}>{lock.unlocked?`🔓 ${lock.remaining} Lead${lock.remaining!==1?"s":""} Available`:"🔒 Leads Locked"}</div>
+              <div style={{fontSize:11,color:lock.unlocked?"#4EBF8B99":"#EF444499",fontFamily:"'IBM Plex Mono',monospace"}}>{lock.message}</div>
+            </div>
+            {lock.onlyHigh&&<div style={{fontSize:8,fontWeight:700,letterSpacing:1,color:"#4EBF8B",background:"rgba(78,191,139,.1)",padding:"4px 10px",borderRadius:8,fontFamily:"'IBM Plex Mono',monospace"}}>HIGH INTENT ONLY</div>}
+          </div>}
+
           <div style={{flex:1,padding:"10px 16px",overflowY:"auto",paddingBottom:90,display:"flex",flexDirection:"column",gap:10}}>
-            {ltab==="feed"&&leads.map((l,i)=>(
+            {ltab==="feed"&&leads.filter(l=>l.name&&l.name!=="Unknown"&&l.name.trim().length>1).map((l,i)=>(
               <div key={l.id} style={{...B.card,animation:anim?"slideUp .4s ease both":"none",animationDelay:`${.05+i*.04}s`}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-                  <div><div style={{fontSize:15,fontWeight:700}}>{l.name||"Unknown"}</div><div style={{fontSize:11,color:"#3E4250",fontFamily:"'IBM Plex Mono',monospace"}}>{l.source||"Facebook"}</div></div>
+                  <div><div style={{fontSize:15,fontWeight:700}}>{l.name}</div><div style={{fontSize:11,color:"#3E4250",fontFamily:"'IBM Plex Mono',monospace"}}>{l.source||"Facebook"}</div></div>
                   <span style={{fontSize:8,fontWeight:700,letterSpacing:1,color:INTENT_COLORS[l.intent]||"#C9A84C",background:`${INTENT_COLORS[l.intent]||"#C9A84C"}12`,padding:"2px 8px",borderRadius:6,fontFamily:"'IBM Plex Mono',monospace",textTransform:"uppercase",height:"fit-content"}}>{l.intent}</span>
                 </div>
-                {l.post_text&&<div style={{fontSize:12,color:"#4A5060",lineHeight:1.5,marginBottom:10,padding:"8px 12px",background:"rgba(255,255,255,.015)",borderRadius:10,borderLeft:"2px solid rgba(255,255,255,.04)"}}>{l.post_text.slice(0,120)}{l.post_text.length>120?"...":""}</div>}
-                <button onClick={()=>handleGrab(l.id)} style={{width:"100%",padding:"14px",borderRadius:14,background:"linear-gradient(135deg,rgba(201,168,76,.12),rgba(201,168,76,.06))",border:"1px solid rgba(201,168,76,.2)",color:"#C9A84C",fontSize:15,fontWeight:800,letterSpacing:1,animation:"grabPulse 2s ease infinite"}}>⚡ GRAB THIS LEAD</button>
+                {l.post_text&&<div style={{fontSize:12,color:"#4A5060",lineHeight:1.5,marginBottom:10,padding:"8px 12px",background:"rgba(255,255,255,.015)",borderRadius:10,borderLeft:"2px solid rgba(255,255,255,.04)"}}>{l.post_text.slice(0,140)}{l.post_text.length>140?"...":""}</div>}
+                {(isAdmin||(lock.unlocked&&lock.remaining>0))?(
+                  <button onClick={()=>handleGrab(l.id)} style={{width:"100%",padding:"14px",borderRadius:14,background:"linear-gradient(135deg,rgba(201,168,76,.12),rgba(201,168,76,.06))",border:"1px solid rgba(201,168,76,.2)",color:"#C9A84C",fontSize:15,fontWeight:800,letterSpacing:1,animation:"grabPulse 2s ease infinite"}}>⚡ GRAB THIS LEAD</button>
+                ):(
+                  <div style={{width:"100%",padding:"14px",borderRadius:14,background:"rgba(239,68,68,.04)",border:"1px solid rgba(239,68,68,.1)",color:"#EF4444",fontSize:13,fontWeight:700,textAlign:"center"}}>🔒 {lock.dials<500?`${500-lock.dials} more dials to unlock`:"No leads remaining today"}</div>
+                )}
               </div>
             ))}
-            {ltab==="feed"&&!leads.length&&<div style={{textAlign:"center",padding:40,color:"#1E2028",fontSize:14}}>No new leads right now</                      {ltab==="mine"&&myLeads.map((l)=>(
-              <LeadCard 
-                key={l.id} 
-                lead={l} 
-                onStatusChange={handleLeadUpdate}
-              />
-  
+            {ltab==="feed"&&!leads.length&&<div style={{textAlign:"center",padding:40,color:"#1E2028",fontSize:14}}>No new leads right now</div>}
+            {ltab==="mine"&&myLeads.map((l,i)=>(
+              <div key={l.id} style={{...B.card,animation:anim?"slideUp .4s ease both":"none",animationDelay:`${.05+i*.04}s`}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                  <div style={{fontSize:15,fontWeight:700}}>{l.name}</div>
+                  <span style={{fontSize:8,fontWeight:700,color:STATUS_COLORS[l.status],background:`${STATUS_COLORS[l.status]}12`,padding:"3px 8px",borderRadius:6,fontFamily:"'IBM Plex Mono',monospace",textTransform:"uppercase"}}>{l.status}</span>
+                </div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {["contacted","booked","closed"].filter(s=>s!==l.status).map(s=>(
+                    <button key={s} onClick={()=>handleLeadUpdate(l.id,{status:s})} style={{padding:"7px 12px",borderRadius:8,background:`${STATUS_COLORS[s]}10`,border:`1px solid ${STATUS_COLORS[s]}20`,color:STATUS_COLORS[s],fontSize:10,fontWeight:700,textTransform:"capitalize"}}>{s}</button>
+                  ))}
+                </div>
+              </div>
             ))}
+            {ltab==="mine"&&!myLeads.length&&<div style={{textAlign:"center",padding:40,color:"#1E2028",fontSize:14}}>Grab leads from the feed!</div>}
+          </div>
+        </div>
+      )}
 
       {/* ════════════════ TRACKER PAGE ════════════════ */}
       {page==="tracker"&&(<>
