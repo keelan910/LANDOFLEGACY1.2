@@ -146,23 +146,19 @@ export default async (req) => {
       return new Response(JSON.stringify({ data: rows }), { headers: H });
     }
 
-        if (a === "leads-my") {
+          if (a === "leads-my") {
       const agent = url.searchParams.get("agent");
       if (!agent) {
         return new Response(JSON.stringify({ data: [] }), { headers: H });
       }
+
       const rows = await sql`
         SELECT * FROM leads 
         WHERE grabbed_by = ${agent} 
           AND status NOT IN ('discarded', 'new') 
-        ORDER BY 
-          CASE status 
-            WHEN 'booked' THEN 1 
-            WHEN 'contacted' THEN 2 
-            WHEN 'grabbed' THEN 3 
-            WHEN 'closed' THEN 4 
-            ELSE 5 
-          END, created_at DESC`;
+        ORDER BY created_at DESC`;
+
+      console.log(`leads-my for ${agent}: ${rows.length} leads found`);
       return new Response(JSON.stringify({ data: rows }), { headers: H });
     }
     }
