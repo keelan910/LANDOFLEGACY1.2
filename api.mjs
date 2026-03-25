@@ -65,77 +65,40 @@ export default async (req) => {
 
     // ====================== LEADS-ADD (Fixed & Optimized) ======================
     if (a === "leads-add") {
-      console.log("=== LEADS-ADD INVOKED ===");
-      console.log("Full URL:", req.url);
+  console.log("=== LEADS-ADD INVOKED ===");
+  console.log("Full URL:", req.url);
 
-      const verify = url.searchParams.get('verify');
-      console.log("Verify received:", verify);
+  const verify = url.searchParams.get('verify');
+  if (verify !== 'landoflegacy2025') {
+    return new Response(JSON.stringify({ error: 'Invalid verify' }), { status: 403, headers: H });
+  }
 
-      if (verify !== 'landoflegacy2025') {
-        console.log("VERIFY FAILED!");
-        return new Response(JSON.stringify({ error: 'Invalid verify' }), { status: 403, headers: H });
-      }
+  let leadsArray = [];
+  try {
+    const bodyText = await req.text();
+    const parsed = JSON.parse(bodyText);
+    leadsArray = Array.isArray(parsed) ? parsed : (parsed.leads || parsed.data || parsed.items || [parsed]);
+  } catch (e) {
+    console.error("Parse error:", e);
+    return new Response(JSON.stringify({ error: 'Bad JSON' }), { status: 400, headers: H });
+  }
 
-      let leadsArray = [];
-      try {
-        const bodyText = await req.text();
-        console.log("Raw body length:", bodyText.length);
-        console.log("Raw body preview:", bodyText.substring(0, 800));
+  for (const lead of leadsArray) {
+    const name = lead.userName || lead.name || lead.user?.name || lead.author || "Unknown Senior";
+    const post_text = (lead.content || lead.text || lead.postText || lead.post || "").slice(0, 2000);
+    const author_profile = lead.profileUrl || lead.user?.url || lead.user?.profileUrl || "";
+    const post_url = lead.postUrl || lead.url || "";
+    const group_name = lead.groupName || lead.groupTitle || lead.group || "";
+    const post_date = lead.date || lead.time || new Date().toISOString();
 
-        const parsed = JSON.parse(bodyText);
-        leadsArray = Array.isArray(parsed) 
-          ? parsed 
-          : (parsed.leads || parsed.data || parsed.items || [parsed]);
+    await sql`
+      INSERT INTO leads (name, source, post_text, intent, author_profile, post_url, group_name, post_date, status, created_at)
+      VALUES (${name}, 'Apify Facebook Groups Lead Extractor Pro', ${post_text}, 'final expense / iul', ${author_profile}, ${post_url}, ${group_name}, ${post_date}, 'new', NOW())
+    `;
+  }
 
-        console.log("Leads parsed:", leadsArray.length);
-      } catch (e) {
-        console.error("Parse error:", e.message);
-        return new Response(JSON.stringify({ error: 'Invalid JSON from Apify' }), { status: 400, headers: H });
-      }
-
-      if (leadsArray.length === 0) {
-        return new Response(JSON.stringify({ success: true, message: "No leads received" }), { headers: H });
-      }
-
-      const inserted = [];
-
-      for (const lead of leadsArray) {
-        const name          = lead.userName || lead.name || lead.author || "Unknown Senior";
-        const post_text     = (lead.content || lead.text || lead.postText || "").slice(0, 2000);
-        const author_profile = lead.profileUrl || "";
-        const post_url      = lead.postUrl || lead.url || "";
-        const group_name    = lead.groupName || lead.groupTitle || lead.group || "";
-        const post_date     = lead.date || lead.time || new Date().toISOString();
-
-        const rows = await sql`
-          INSERT INTO leads 
-            (name, source, post_text, intent, author_profile, post_url, group_name, post_date, status, created_at)
-          VALUES 
-            (${name}, 
-             'Apify Facebook Groups Lead Extractor Pro', 
-             ${post_text}, 
-             'final expense / iul', 
-             ${author_profile}, 
-             ${post_url}, 
-             ${group_name}, 
-             ${post_date}, 
-             'new', 
-             NOW())
-          RETURNING id, name, post_text, author_profile, post_url, group_name
-        `;
-
-        if (rows && rows.length > 0) {
-          inserted.push(rows[0]);
-          console.log(`✅ Inserted ID ${rows[0].id} | Name: "${rows[0].name}" | Profile: ${!!rows[0].author_profile}`);
-        }
-      }
-
-      console.log(`🎉 Successfully inserted ${inserted.length} leads`);
-      return new Response(JSON.stringify({ 
-        success: true, 
-        inserted: inserted.length 
-      }), { headers: H });
-    }
+  return new Response(JSON.stringify({ success: true, inserted: leadsArray.length }), { headers: H });
+}
 
     // ====================== OTHER ACTIONS ======================
     if (a === "leads-list") {
