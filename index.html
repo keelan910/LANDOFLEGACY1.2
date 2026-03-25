@@ -390,12 +390,13 @@ function App(){
                 <button onClick={()=>handleGrab(l.id)} style={{width:"100%",padding:"14px",borderRadius:14,background:"linear-gradient(135deg,rgba(201,168,76,.12),rgba(201,168,76,.06))",border:"1px solid rgba(201,168,76,.2)",color:"#C9A84C",fontSize:15,fontWeight:800,letterSpacing:1,animation:"grabPulse 2s ease infinite"}}>⚡ GRAB THIS LEAD</button>
               </div>
             ))}
-            {ltab==="feed"&&!leads.length&&<div style={{textAlign:"center",padding:40,color:"#1E2028",fontSize:14}}>No new leads right now</            {ltab==="mine"&&myLeads.map((l)=>(
+            {ltab==="feed"&&!leads.length&&<div style={{textAlign:"center",padding:40,color:"#1E2028",fontSize:14}}>No new leads right now</                      {ltab==="mine"&&myLeads.map((l)=>(
               <LeadCard 
                 key={l.id} 
                 lead={l} 
                 onStatusChange={handleLeadUpdate}
               />
+  
             ))}
 
       {/* ════════════════ TRACKER PAGE ════════════════ */}
