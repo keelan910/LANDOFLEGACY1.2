@@ -58,43 +58,81 @@ if (a === "leads-add") {
 
   const body = await req.json();
 
-  // Handle both array and {data: [...]} formats from Apify
-  const leadsArray = Array.isArray(body) ? body : (body.data || body || []);
+if (a === "leads-add") {
+  console.log("=== LEADS-ADD INVOKED ===");
+  console.log("Full URL:", request.url);
+
+  const verify = url.searchParams.get('verify');
+  console.log("Verify param:", verify);
+
+  if (verify !== 'landoflegacy2025') {
+    console.log("VERIFY FAILED!");
+    return new Response(JSON.stringify({ error: 'Invalid verify' }), { status: 403, headers: H });
+  }
+
+  let leadsArray = [];
+  try {
+    const bodyText = await request.text();
+    console.log("Raw body length:", bodyText.length);
+    console.log("Raw body preview:", bodyText.substring(0, 500));
+
+    const body = JSON.parse(bodyText);
+    leadsArray = Array.isArray(body) ? body : (body.leads || body.data || body.items || []);
+    console.log("Parsed leads count:", leadsArray.length);
+  } catch (parseErr) {
+    console.error("Failed to parse body:", parseErr);
+    return new Response(JSON.stringify({ error: 'Invalid JSON from Apify' }), { status: 400, headers: H });
+  }
+
+  if (leadsArray.length === 0) {
+    console.log("No leads in payload");
+    return new Response(JSON.stringify({ success: true, message: "No leads received" }), { headers: H });
+  }
 
   const inserted = [];
 
   for (const lead of leadsArray) {
-    const name = lead.userName || lead.name || lead.author || "Unknown Senior";
+    console.log("Processing lead:", JSON.stringify(lead, null, 2).substring(0, 400)); // log first lead for debug
+
+    const name = lead.userName || lead.name || lead.author || lead.username || "Unknown Senior";
     const source = "Apify Facebook Groups Scraper";
-    const post_text = (lead.content || lead.text || lead.post || lead.description || "").slice(0, 2000);
+    const post_text = (lead.content || lead.text || lead.post || lead.description || lead.message || "").slice(0, 2000);
     const intent = lead.matchedKeyword || "final expense / iul";
-    const author_profile = lead.profileUrl || lead.userProfileUrl || "";
-    const post_url = lead.postUrl || lead.url || "";
-    const group_name = lead.groupTitle || lead.groupName || lead.group || "";
-    const post_date = lead.date || lead.time || lead.createdAt || new Date().toISOString();
+    const author_profile = lead.profileUrl || lead.userProfileUrl || lead.authorUrl || "";
+    const post_url = lead.postUrl || lead.url || lead.link || "";
+    const group_name = lead.groupTitle || lead.groupName || lead.group || lead.group_name || "";
+    const post_date = lead.date || lead.time || lead.createdAt || lead.timestamp || new Date().toISOString();
 
-    // Insert into your leads table
-    const rows = await sql`
-      INSERT INTO leads 
-        (name, source, post_text, intent, author_profile, post_url, group_name, post_date, status, created_at)
-      VALUES 
-        (${name}, ${source}, ${post_text}, ${intent}, ${author_profile}, ${post_url}, ${group_name}, ${post_date}, 'new', NOW())
-      RETURNING id
-    `;
+    try {
+      const rows = await sql`
+        INSERT INTO leads 
+          (name, source, post_text, intent, author_profile, post_url, group_name, post_date, status, created_at)
+        VALUES 
+          (${name}, ${source}, ${post_text}, ${intent}, ${author_profile}, ${post_url}, ${group_name}, ${post_date}, 'new', NOW())
+        RETURNING id, name, post_text, post_url, group_name
+      `;
 
-    if (rows && rows.length > 0) {
-      inserted.push(rows[0]);
+      if (rows && rows.length > 0) {
+        inserted.push(rows[0]);
+        console.log(`Inserted lead ID ${rows[0].id} - Name: ${rows[0].name}`);
+      }
+    } catch (insertErr) {
+      console.error("Insert error for this lead:", insertErr);
     }
   }
+
+  console.log(`Successfully inserted ${inserted.length} leads`);
 
   return new Response(JSON.stringify({ 
     success: true, 
     message: `Successfully inserted ${inserted.length} new leads from Apify`,
-    count: inserted.length 
+    count: inserted.length,
+    sample: inserted[0] || null
   }), { 
     status: 200,
-    headers: { 'Content-Type': 'application/json' }
+    headers: H 
   });
+}
 }
       }
       if (a === "leads-grab") {
