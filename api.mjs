@@ -132,20 +132,16 @@ export default async (req) => {
       return new Response(JSON.stringify({ data: stats }), { headers: H });
     }
 
-    if (a === "leads-grab") {
-      const body = await req.json();
-      if (!body.id || !body.agent) {
-        return new Response(JSON.stringify({ error: "Missing id or agent" }), { status: 400, headers: H });
-      }
-      const rows = await sql`
-        UPDATE leads 
-        SET status='grabbed', 
-            grabbed_by=${body.agent}, 
-            grabbed_at=NOW() 
-        WHERE id=${body.id} AND status='new' 
-        RETURNING *`;
-      if (!rows.length) {
-        return new Response(JSON.stringify({ error: "Already grabbed or not found" }), { status: 409, headers: H });
+   if (a === "leads-grab") {
+  const body = await req.json();
+  const rows = await sql`
+    UPDATE leads 
+    SET status='grabbed', grabbed_by=${body.agent}, grabbed_at=NOW() 
+    WHERE id=${body.id} AND status='new' 
+    RETURNING *`;
+  if (!rows.length) return new Response(JSON.stringify({ error: "Already grabbed" }), { status: 409, headers: H });
+  return new Response(JSON.stringify({ data: rows[0] }), { headers: H });
+}
       }
       return new Response(JSON.stringify({ data: rows[0] }), { headers: H });
     }
